@@ -40,7 +40,7 @@ pub trait Evaluation<R>:
     + std::ops::Add<Output = Self>
 {
     fn modify_death(self) -> Self;
-    fn weight(self, min: &Self, rank: usize) -> i64;
+    fn weight(self, min: &Self, rank: usize,is_bot_new:u32,visits:u32) -> i64;
 
     fn improve(&mut self, other: Self);
 }

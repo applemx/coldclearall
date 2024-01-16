@@ -20,7 +20,7 @@ impl<E: Evaluator> BotInput<E> {
             controller: Controller::default(),
             executing: None,
             time_budget: Duration::new(0, 0),
-            bot: cold_clear::BotState::new(board, Default::default()),
+            bot: cold_clear::BotState::new(board, Default::default(),is_bot_new),
             eval,
         };
         for _ in 0..180 {

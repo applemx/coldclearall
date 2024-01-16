@@ -13,6 +13,7 @@ pub struct BotState<E: Evaluator> {
     options: Options,
     forced_analysis_lines: Vec<Vec<FallingPiece>>,
     pub outstanding_thinks: u32,
+    pub is_bot_new:u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -30,12 +31,13 @@ pub enum ThinkResult<V, R> {
 }
 
 impl<E: Evaluator> BotState<E> {
-    pub fn new(board: Board, options: Options) -> Self {
+    pub fn new(board: Board, options: Options,is_bot_new:u32,) -> Self {
         BotState {
-            tree: DagState::new(board, options.use_hold),
+            tree: DagState::new(board, options.use_hold,is_bot_new),
             options,
             forced_analysis_lines: vec![],
             outstanding_thinks: 0,
+            is_bot_new,
         }
     }
 

@@ -234,6 +234,7 @@ impl Default for Options {
     fn default() -> Self {
         let mut p2 = PlayerConfig::default();
         p2.is_bot = true;
+        p2.is_bot_new = 2;
         Options {
             p1: PlayerConfig::default(),
             p2,
@@ -243,12 +244,14 @@ impl Default for Options {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(default)]
-struct PlayerConfig<E: Default> {
+pub struct PlayerConfig<E: Default> {
     controls: input::UserInput,
     game: GameConfig,
     bot_config: BotConfig<E>,
     is_bot: bool,
     show_plan: bool,
+    //newfield
+    is_bot_new: u32,
 }
 
 impl<E: Default> Default for PlayerConfig<E> {
@@ -259,6 +262,8 @@ impl<E: Default> Default for PlayerConfig<E> {
             bot_config: Default::default(),
             is_bot: false,
             show_plan: true,
+            //newfield
+            is_bot_new: 1,
         }
     }
 }
@@ -303,6 +308,7 @@ where
                         }),
                     ),
                     self.bot_config.speed_limit,
+                    self.is_bot_new,
                 )) as Box<_>,
                 name,
             );
@@ -362,3 +368,4 @@ impl Drop for LogFile {
         }
     }
 }
+

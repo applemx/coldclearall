@@ -21,15 +21,17 @@ pub struct BotInput {
     executing: Option<(FallingPiece, PieceMoveExecutor)>,
     controller: Controller,
     speed_limit: u32,
+    is_bot_new: u32,
 }
 
 impl BotInput {
-    pub fn new(interface: cold_clear::Interface, speed_limit: u32) -> Self {
+    pub fn new(interface: cold_clear::Interface, speed_limit: u32, is_bot_new: u32) -> Self {
         BotInput {
             interface,
             executing: None,
             controller: Default::default(),
             speed_limit,
+            is_bot_new,
         }
     }
 }

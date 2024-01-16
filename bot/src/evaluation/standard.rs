@@ -740,9 +740,17 @@ impl Evaluation<Reward> for Value {
         }
     }
 
-    fn weight(self, min: &Value, rank: usize) -> i64 {
-        let e = (self.value - min.value) as i64 + 10;
-        e * e / (rank * rank + 1) as i64
+    fn weight(self, min: &Value, rank: usize, is_bot_new: u32, visits: u32) -> i64 {
+        if is_bot_new == 1 {
+            let e = (self.value - min.value) as i64 + 10;
+            return e * e / (rank * rank + 1) as i64;
+        }
+        if is_bot_new == 2 {
+            let e = (self.value - min.value) as i64 + 10;
+            return e * e / (rank * rank + 1) as i64;
+        }
+
+        1000 // Default return value if none of the conditions are met
     }
 
     fn improve(&mut self, new_result: Self) {

@@ -38,7 +38,7 @@ pub(crate) struct ModeSwitchedBot<'a, E: Evaluator> {
 impl<'a, E: Evaluator> ModeSwitchedBot<'a, E> {
     pub fn new(board: Board, options: Options, book: Option<&'a Book>) -> Self {
         #[cfg(target_arch = "wasm32")]
-        let mode = Mode::Normal(normal::BotState::new(board.clone(), options));
+        let mode = Mode::Normal(normal::BotState::new(board.clone(), options,0));
         #[cfg(not(target_arch = "wasm32"))]
         let mode = if options.pcloop.is_some()
             && board.get_row(0).is_empty()
@@ -51,7 +51,7 @@ impl<'a, E: Evaluator> ModeSwitchedBot<'a, E> {
                 options.pcloop.unwrap(),
             ))
         } else {
-            Mode::Normal(normal::BotState::new(board.clone(), options))
+            Mode::Normal(normal::BotState::new(board.clone(), options,0))
         };
         ModeSwitchedBot {
             mode,
@@ -85,7 +85,7 @@ impl<'a, E: Evaluator> ModeSwitchedBot<'a, E> {
                     Mode::Normal(bot) => bot.reset(field, b2b, combo),
                     Mode::PcLoop(_) => {
                         self.mode =
-                            Mode::Normal(normal::BotState::new(self.board.clone(), self.options))
+                            Mode::Normal(normal::BotState::new(self.board.clone(), self.options,0))
                     }
                 }
             }
@@ -145,7 +145,7 @@ impl<'a, E: Evaluator> ModeSwitchedBot<'a, E> {
                     }
                     Mode::PcLoop(bot) => {
                         if !bot.play_move(mv) {
-                            let bot = normal::BotState::new(self.board.clone(), self.options);
+                            let bot = normal::BotState::new(self.board.clone(), self.options,0);
                             self.mode = Mode::Normal(bot);
                         }
                     }
@@ -192,7 +192,7 @@ impl<'a, E: Evaluator> ModeSwitchedBot<'a, E> {
                         }
                         Err(false) => {}
                         Err(true) => {
-                            let mut bot = normal::BotState::new(self.board.clone(), self.options);
+                            let mut bot = normal::BotState::new(self.board.clone(), self.options,0);
                             let mut thinks = vec![];
                             if let Ok(thinker) = bot.think() {
                                 thinks.push(Task::NormalThink(thinker));

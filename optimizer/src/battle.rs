@@ -20,7 +20,7 @@ impl<E: Evaluator> BotInput<E> {
         let mut this = BotInput {
             controller: Controller::default(),
             executing: None,
-            bot: cold_clear::BotState::new(board, Default::default()),
+            bot: cold_clear::BotState::new(board, Default::default(),is_bot_new),
             eval,
         };
         for _ in 0..180 {

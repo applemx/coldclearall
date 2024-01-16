@@ -92,13 +92,13 @@ use serde::{Deserialize, Serialize};
 use crate::evaluation::Evaluation;
 
 use self::ouroboros_impl_generation::BorrowedMutFields;
-
 pub struct DagState<E: 'static, R: 'static> {
     board: Board,
     generations: VecDeque<Generation<E, R>>,
     root: u32,
     gens_passed: u32,
     use_hold: bool,
+    is_bot_new:u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -173,13 +173,14 @@ struct SimplifiedBoard<'c> {
 }
 
 impl<E: Evaluation<R> + 'static, R: Clone + 'static> DagState<E, R> {//DagStateインスタンスを初期化
-    pub fn new(board: Board, use_hold: bool) -> Self {
+    pub fn new(board: Board, use_hold: bool,is_bot_new:u32,) -> Self {
         let mut this = DagState {
             board,
             generations: VecDeque::new(),
             root: 0,
             gens_passed: 0,
             use_hold,
+            is_bot_new,
         };
         this.init_generations();//初期化
         this
@@ -254,7 +255,7 @@ impl<E: Evaluation<R> + 'static, R: Clone + 'static> DagState<E, R> {//DagState�
                 return choice;//最適な手を探し終わったことを示す。
             }
         }
-
+        let isbotnew= self.is_bot_new;
         self.find_and_mark_leaf_with_chooser(|next_gen_nodes, children| {
             // Since children is sorted best-to-worst, the minimum evaluation will be the last item
             // in the iterator. filter_map allows us to ignore death nodes.
@@ -264,7 +265,7 @@ impl<E: Evaluation<R> + 'static, R: Clone + 'static> DagState<E, R> {//DagState�
             let weights = children
                 .iter()
                 .enumerate()
-                .map(|(i, c)| evaluation(c).map_or(0, |e| e.weight(&min_eval, i)));
+                .map(|(i, c)| evaluation(c).map_or(0, |e| e.weight(&min_eval, i,isbotnew,0)));
             // Choose a node randomly (the Monte-Carlo part)
             let sampler = rand::distributions::WeightedIndex::new(weights).ok()?;
             Some(&children[thread_rng().sample(sampler)])

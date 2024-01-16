@@ -46,7 +46,7 @@ impl RealtimeGame {
         let (p1_input, p1_name) = options
             .p1
             .to_player(battle.player_1.board.to_compressed())
-            .await;
+            .await; 
         let (p2_input, p2_name) = options
             .p2
             .to_player(battle.player_2.board.to_compressed())
