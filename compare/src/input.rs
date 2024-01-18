@@ -15,7 +15,7 @@ pub struct BotInput<E: Evaluator> {
 const THINK_AMOUNT: Duration = Duration::from_millis(4);
 
 impl<E: Evaluator> BotInput<E> {
-    pub fn new(board: Board, eval: E) -> Self {
+    pub fn new(board: Board, eval: E,is_bot_new:u32) -> Self {
         let mut this = BotInput {
             controller: Controller::default(),
             executing: None,

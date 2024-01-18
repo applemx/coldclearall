@@ -16,7 +16,7 @@ pub struct BotInput<E: Evaluator> {
 const THINK_AMOUNT: usize = 10;
 
 impl<E: Evaluator> BotInput<E> {
-    pub fn new(board: Board, eval: E) -> Self {
+    pub fn new(board: Board, eval: E,is_bot_new:u32) -> Self {
         let mut this = BotInput {
             controller: Controller::default(),
             executing: None,
@@ -104,8 +104,8 @@ pub fn do_battle(
     battle.replay.p1_name = format!("Cold Clear\n{}", p1.name());
     battle.replay.p2_name = format!("Cold Clear\n{}", p2.name());
 
-    let mut p1 = BotInput::new(battle.player_1.board.to_compressed(), p1);
-    let mut p2 = BotInput::new(battle.player_2.board.to_compressed(), p2);
+    let mut p1 = BotInput::new(battle.player_1.board.to_compressed(), p1,1);
+    let mut p2 = BotInput::new(battle.player_2.board.to_compressed(), p2,2);
 
     let mut p1_info_updates = VecDeque::new();
     let mut p2_info_updates = VecDeque::new();

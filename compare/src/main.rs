@@ -15,7 +15,8 @@ fn main() {
 
     let p1_eval = Standard::default();
 
-    let p2_eval = changed::Standard::default();
+    /* let p2_eval = changed::Standard::default(); */
+    let p2_eval = Standard::default();
 
     let (send, recv) = std::sync::mpsc::channel();
 
@@ -75,8 +76,8 @@ fn do_battle(p1: impl Evaluator + Clone, p2: impl Evaluator + Clone) -> (InfoRep
     battle.replay.p1_name = format!("Cold Clear\n{}", p1.name());
     battle.replay.p2_name = format!("Cold Clear\n{}", p2.name());
 
-    let mut p1 = BotInput::new(battle.player_1.board.to_compressed(), p1);
-    let mut p2 = BotInput::new(battle.player_2.board.to_compressed(), p2);
+    let mut p1 = BotInput::new(battle.player_1.board.to_compressed(), p1,1);
+    let mut p2 = BotInput::new(battle.player_2.board.to_compressed(), p2,2);
 
     let mut p1_info_updates = VecDeque::new();
     let mut p2_info_updates = VecDeque::new();

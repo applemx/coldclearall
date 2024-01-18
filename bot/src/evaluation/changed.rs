@@ -1,4 +1,4 @@
-use libtetris::*;
+/* use libtetris::*;
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -770,6 +770,10 @@ impl Evaluation<Reward> for Value {
     }
 
     fn weight(self, min: &Value, rank: usize, is_bot_new: u32, visits: u32) -> i64 {
+        if is_bot_new == 0 {
+            let e = (self.value - min.value) as i64 + 10;
+            return e * e / (rank * rank + 1) as i64;
+        }
         if is_bot_new == 1 {
             let e = (self.value - min.value) as i64 + 10;
             return e * e / (rank * rank + 1) as i64;
@@ -786,3 +790,4 @@ impl Evaluation<Reward> for Value {
         self.spike = self.spike.max(new_result.spike);
     }
 }
+ */
