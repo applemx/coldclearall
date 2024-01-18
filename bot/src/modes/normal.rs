@@ -202,7 +202,7 @@ impl<E: Evaluator> BotState<E> {
 impl Thinker {
     pub fn think<E: Evaluator>(self, eval: &E) -> ThinkResult<E::Value, E::Reward> {
         if let Err(possibilities) = self.board.get_next_piece() {
-            // Next unknown (implies hold is known) => Speculate
+            // Next unknown (implies hold is known) => Speculate　次のピースが分からないとき＝＞Speculateモード
             if self.options.speculate {
                 let mut children = EnumMap::new();
                 for p in possibilities {
@@ -219,7 +219,7 @@ impl Thinker {
                 && self.board.hold_piece.is_none()
                 && self.board.get_next_next_piece().is_none()
             {
-                // Next known, hold unknown => Speculate
+                // Next known, hold unknown => Speculate ネクストが分かっていて、ホールドが分からないとき＝＞Speculateモード
                 if self.options.speculate {
                     let mut children = EnumMap::new();
                     let possibilities = {
@@ -234,7 +234,7 @@ impl Thinker {
                     }
                     ThinkResult::Speculated(self.node, children)
                 } else {
-                    ThinkResult::Unmark(self.node)
+                    ThinkResult::Unmark(self.node)//次の手を考えるのをあきらめたということ
                 }
             } else {
                 // Next and hold known
