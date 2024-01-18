@@ -1,80 +1,79 @@
-/* //! This file implements the DAG structure Cold Clear uses to store think results and facilitate the
-//! Monte Carlo Tree Search. This is by far the most complicated file in Cold Clear.
-//!
-//! ## Implementation notes
-//!
-//! A generation contains all of the nodes that involve placing a specific number of pieces on
-//! the board. `DagState.node_generations[0]` is always the generation of the current board state
-//! and always belongs to generation `DagState.pieces`. When a move is picked, the generation the
-//! root node previously belonged to is deleted.
-//!
-//! Generations are associated with pieces in the next queue in a natural way. If the associated
-//! piece is not known, the generation is a speculated generation. It follows that there are never
-//! known generations following the first speculated generation. When a new piece is added to the
-//! next queue, the associated generation is converted from speculated to known. This process does
-//! not change the slab keys of nodes in the converted generation so that links in the prior and
-//! next generation aren't invalidated.
-//!
-//! The piece associated with the generation is the last piece of information required to allow the
-//! children to be known instead of speculated. There are three cases:
-//! 1. Hold is disabled: The generation piece is the next piece.
-//! 2. Hold is empty: The reserve piece is the next piece, the generation piece is the piece after.
-//! 3. Hold is full: The reserve piece is the hold piece, the generation piece is the next piece.
-//! The same board state with the same reserve piece can be reached but one path may leave hold
-//! empty and the other fill the hold slot. `SimplifiedBoard.reserve_is_hold` distinguishes these
-//! cases. Note that we still need to know what the reserve piece is even when it's not the hold
-//! piece due to speculation.
-//!
-//! Visualization of the way generation pieces work:
-//! ```plain
-//! Gen piece: S        ( )ZST
-//!                    /      \
-//! Gen piece: T   (Z)T        ( )ST
-//!               /    \      /     \
-//! Speculated   (T)?  (Z)?  (S)?   ( )T?
-//! ```
-//!
-//! Traversing the DAG requires cloning the `DagState.board` and calling `Board::lock_piece` every
-//! time you traverse down if you want information relating to the board anywhere in the DAG. This
-//! might slow down `find_and_mark_leaf`, but that function is already very fast.
-//!
-//! ## On memory allocation
-//!
-//! Hitting the memory allocator appears to be horribly slow on Windows. I'm trying to avoid this
-//! by only de/allocating in large chunks, using `bumpalo` for the children lists is the main
-//! optimization there. `bumpalo` has an interesting strategy for allocating new chunks of memory,
-//! if need be we can replace the `Vec` we're using as a slab with something with a similar
-//! allocation strategy. If allocator performance is still an issue, we could pool the bump
-//! allocation arenas and the slab `Vec`s, but this seems unlikely.
-//!
-//! ## Some overall memory usage stuff
-//!
-//! The hashmaps of `SimplifiedBoard`s will probably take up quite a bit of space, since a tetris
-//! board is a large thing (400 cells!). We currently use the simple bitboard slice strategy. If
-//! need be, we can easily switch to the compact bitboard slice strategy by using the `bitvec`
-//! crate. I don't think my run-length encoding scheme saves enough memory to be worth the effort,
-//! but I think it's cool. Quick overview of the memory usage of various strategies:
-//! - Naive `[[bool; 10]; 40]`: 400 bytes
-//! - Simple bitboard `[u16; 40]`: 80 bytes
-//! - Compact bitboard `[u1; 400]`: 50 bytes
-//! - Simple bitboard slice `&[u16]` (omit empty rows): 36 bytes-ish
-//! - Compact bitboard slice `&[u1]` (omit trailing empty cells): 28 bytes-ish
-//! - Run-length encoding scheme (using `&[u8]`): 32 bytes-ish
-//! - Run-length encoding scheme (using `*const u8`): 25 bytes-ish
-//! The "-ish" values are based on this board, which I assume is typical: http://fumen.zui.jp/?v115@BgA8CeA8EeA8BeD8CeF8CeH8AeK8AeI8AeI8AeE8Ae?I8AeI8AeD8JeAgH
-//!
-//! My run-length encoding scheme is not self-explanatory, so I will describe it here (despite the
-//! lack of any implementation). Represent the cells as a bitstring ordered as column 0 going up,
-//! column 1 going down, column 2 going up, column 3 going down, etc. Represent each run as a byte
-//! where the topmost bit is 1 if the run is of filled cells and 0 if it is of empty cells. The
-//! remaining 7 bits store the length of the run minus 1. If a run is longer than 128, it is
-//! transformed to a run of length 128 plus a run of the remaining length. Since the length of the
-//! byte sequence is represented in the data, the pointer can be made thin, but this requires the
-//! use of `unsafe` code when decoding.
-//!
-//! Example 1: the empty field is represented as `0x7F 0x7F 0x7F 0x0F`; three runs of empty cells of
-//! length 128, and a run of empty cells of length 16. Example 2: the field containing only an I
-//! piece laid flat in the center is represented as `0x7F 0x1E 0x81 0x4D 0x81 0x7F 0x1E`. */
+/*   This file implements the DAG structure Cold Clear uses to store think results and facilitate the
+Monte Carlo Tree Search. This is by far the most complicated file in Cold Clear.Node
+ ## Implementation notes
+
+A generation contains all of the nodes that involve placing a specific number of pieces on
+the board. `DagState.node_generations[0]` is always the generation of the current board state
+and always belongs to generation `DagState.pieces`. When a move is picked, the generation the
+root node previously belonged to is deleted.
+
+Generations are associated with pieces in the next queue in a natural way. If the associated
+piece is not known, the generation is a speculated generation. It follows that there are never
+known generations following the first speculated generation. When a new piece is added to the
+next queue, the associated generation is converted from speculated to known. This process does
+not change the slab keys of nodes in the converted generation so that links in the prior and
+next generation aren't invalidated.
+
+The piece associated with the generation is the last piece of information required to allow the
+children to be known instead of speculated. There are three cases:
+1. Hold is disabled: The generation piece is the next piece.
+2. Hold is empty: The reserve piece is the next piece, the generation piece is the piece after.
+3. Hold is full: The reserve piece is the hold piece, the generation piece is the next piece.
+The same board state with the same reserve piece can be reached but one path may leave hold
+empty and the other fill the hold slot. `SimplifiedBoard.reserve_is_hold` distinguishes these
+cases. Note that we still need to know what the reserve piece is even when it's not the hold
+piece due to speculation.
+
+Visualization of the way generation pieces work:
+```plain
+Gen piece: S        ( )ZST
+                   /      \
+Gen piece: T   (Z)T        ( )ST
+              /    \      /     \
+Speculated   (T)?  (Z)?  (S)?   ( )T?
+```
+
+Traversing the DAG requires cloning the `DagState.board` and calling `Board::lock_piece` every
+time you traverse down if you want information relating to the board anywhere in the DAG. This
+might slow down `find_and_mark_leaf`, but that function is already very fast.
+
+## On memory allocation
+
+Hitting the memory allocator appears to be horribly slow on Windows. I'm trying to avoid this
+by only de/allocating in large chunks, using `bumpalo` for the children lists is the main
+optimization there. `bumpalo` has an interesting strategy for allocating new chunks of memory,
+if need be we can replace the `Vec` we're using as a slab with something with a similar
+allocation strategy. If allocator performance is still an issue, we could pool the bump
+allocation arenas and the slab `Vec`s, but this seems unlikely.
+
+## Some overall memory usage stuff
+
+The hashmaps of `SimplifiedBoard`s will probably take up quite a bit of space, since a tetris
+board is a large thing (400 cells ). We currently use the simple bitboard slice strategy. If
+need be, we can easily switch to the compact bitboard slice strategy by using the `bitvec`
+crate. I don't think my run-length encoding scheme saves enough memory to be worth the effort,
+but I think it's cool. Quick overview of the memory usage of various strategies:
+- Naive `[[bool; 10]; 40]`: 400 bytes
+- Simple bitboard `[u16; 40]`: 80 bytes
+- Compact bitboard `[u1; 400]`: 50 bytes
+- Simple bitboard slice `&[u16]` (omit empty rows): 36 bytes-ish
+- Compact bitboard slice `&[u1]` (omit trailing empty cells): 28 bytes-ish
+- Run-length encoding scheme (using `&[u8]`): 32 bytes-ish
+- Run-length encoding scheme (using `*const u8`): 25 bytes-ish
+The "-ish" values are based on this board, which I assume is typical: http://fumen.zui.jp/?v115@BgA8CeA8EeA8BeD8CeF8CeH8AeK8AeI8AeI8AeE8Ae?I8AeI8AeD8JeAgH
+
+My run-length encoding scheme is not self-explanatory, so I will describe it here (despite the
+lack of any implementation). Represent the cells as a bitstring ordered as column 0 going up,
+column 1 going down, column 2 going up, column 3 going down, etc. Represent each run as a byte
+where the topmost bit is 1 if the run is of filled cells and 0 if it is of empty cells. The
+remaining 7 bits store the length of the run minus 1. If a run is longer than 128, it is
+transformed to a run of length 128 plus a run of the remaining length. Since the length of the
+byte sequence is represented in the data, the pointer can be made thin, but this requires the
+use of `unsafe` code when decoding.
+
+Example 1: the empty field is represented as `0x7F 0x7F 0x7F 0x0F`; three runs of empty cells of
+length 128, and a run of empty cells of length 16. Example 2: the field containing only an I
+piece laid flat in the center is represented as `0x7F 0x1E 0x81 0x4D 0x81 0x7F 0x1E`. */
 #![allow(dead_code)]
 
 use std::collections::{HashMap, VecDeque};
@@ -423,7 +422,6 @@ impl<E: Evaluation<R> + 'static, R: Clone + 'static> DagState<E, R> {//DagStateã
                 parent_gen.with_data_mut(|parent_gen| {
                     children_gen.with_data(|children_gen| {
                         let node = &mut parent_gen.nodes[node_id as usize];
-
                         // Strategy for dealing with children lists.
                         let eval_of = &child_eval_fn(&children_gen.nodes);
                         let process_children = |children: &mut &mut [_]| {
