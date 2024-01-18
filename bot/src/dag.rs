@@ -416,7 +416,6 @@ impl<E: Evaluation<R> + 'static, R: Clone + 'static> DagState<E, R> {//DagStateã
         // Use a queue to iterate in breadth-first order. This allows us to know that we shouldn't
         // add an element to the queue if it's already present; we know that all of its children
         // will have been processed first before we get to the parent node.
-
         while !to_update.is_empty() {
             let mut next_gen_to_update = vec![];
             for node_id in to_update {
