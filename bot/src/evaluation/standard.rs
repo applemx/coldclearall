@@ -742,12 +742,39 @@ impl Evaluation<Reward> for Value {
 
     fn weight(self, min: &Value, rank: usize, is_bot_new: u32, visits: u32) -> i64 {
         if is_bot_new == 0 {
-            let e = (self.value - min.value) as i64 + 10;
-            return e * e / (rank * rank + 1) as i64;
-        }
+            if rank == 0{
+                let e = (self.value - min.value) as i64 + 10;
+                return e ;
+            }
+            if rank == 1{
+                let e = (self.value - min.value) as i64 + 10;
+                return e ;
+            }
+            if rank == 2{
+                let e = (self.value - min.value) as i64 + 10;
+                return e ;
+            }
+            else{
+                0.0;
+            }
+        } 
         if is_bot_new == 1 {
-            let e = (self.value - min.value) as i64 + 10;
-            return e * e / (rank * rank + 1) as i64;
+            if rank == 0{
+                let e = (self.value - min.value) as i64 + 10;
+                return e * e / (rank+1) as i64;
+            }
+            if rank == 1{
+                let e = (self.value - min.value) as i64 + 10;
+                return e * e / (rank+1) as i64;
+            }
+            if rank == 2{
+                let e = (self.value - min.value) as i64 + 10;
+                return e * e / (rank+1) as i64;
+            }
+            else{
+                0.0;
+            }
+            
         }
         if is_bot_new == 2 {
             let e = (self.value - min.value) as i64 + 10;
